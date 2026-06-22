@@ -405,28 +405,13 @@ def main():
             push_notify("签到失败", msg, "❌")
 
     elif code == 400 and "无需签到" in message:
-        # 服务尚未到期，无需签到
+        # 服务尚未到期，无需签到 — 不推送，避免每天 3 次骚扰
         next_time = service_info.get("next_sign_time", "未知")
         expire_time = service_info.get("expire_time", "未知")
-        msg = (
-            f"ℹ️ 当前无需签到\n"
-            f"服务到期: {expire_time}\n"
-            f"下次可签到: {next_time}"
+        log.info(
+            "ℹ️ 当前无需签到 | 到期: %s | 下次可签到: %s",
+            expire_time, next_time,
         )
-        log.info(msg)
-        # 可以推也可以不推，避免频繁打扰
-        # 仅当到期时间在3天内时推送提醒
-        if expire_time != "未知":
-            try:
-                expire_dt = datetime.strptime(expire_time, "%Y-%m-%d %H:%M:%S")
-                now = datetime.now()
-                days_left = (expire_dt - now).days
-                if 0 <= days_left <= 3:
-                    push_notify("服务即将到期", msg, "⏰")
-                else:
-                    log.info("跳过推送（到期还早）")
-            except:
-                pass
 
     elif code == 400:
         # 其他业务错误
