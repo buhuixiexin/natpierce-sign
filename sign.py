@@ -49,6 +49,8 @@ from http.cookiejar import LWPCookieJar
 
 try:
     import requests
+    from requests.adapters import HTTPAdapter
+    from urllib3.util.retry import Retry
 except ImportError:
     print("缺少 requests 库，请运行: pip install requests")
     sys.exit(1)
@@ -365,9 +367,20 @@ def main():
 
     session = requests.Session()
 
+    # 配置重试策略：DNS/连接/超时自动重试 3 次，指数退避
+    retry_strategy = Retry(
+        total=3,
+        backoff_factor=2,
+        status_forcelist=[],
+        allowed_methods=frozenset(['GET', 'POST']),
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session.mount('https://', adapter)
+    session.mount('http://', adapter)
+
     # Step 1: 登录
     if not login(session):
-        push_notify("登录失败", "请检查账号密码是否正确", "❌")
+        push_notify("登录失败", "脚本登录失败，请查看 GitHub Actions 日志确认原因", "❌")
         sys.exit(1)
 
     # Step 2: 获取服务信息
